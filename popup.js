@@ -37,14 +37,8 @@ function isFirefox() {
 
 // Execute script with browser compatibility
 async function executeScript(tabId, func) {
-  if (chrome.scripting && chrome.scripting.executeScript) {
-    // Chrome Manifest V3
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: func
-    });
-    return results[0].result;
-  } else if (chrome.tabs && chrome.tabs.executeScript) {
+  // Check if we're in Firefox (Manifest V2) or Chrome (Manifest V3)
+  if (typeof browser !== 'undefined' || !chrome.scripting) {
     // Firefox or Chrome Manifest V2
     return new Promise((resolve, reject) => {
       chrome.tabs.executeScript(tabId, {
@@ -57,6 +51,13 @@ async function executeScript(tabId, func) {
         }
       });
     });
+  } else if (chrome.scripting && chrome.scripting.executeScript) {
+    // Chrome Manifest V3
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: func
+    });
+    return results[0].result;
   } else {
     throw new Error('No compatible script execution API found');
   }
