@@ -1,44 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCORM Score Injector</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCORM Completion Helper</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="icon">🎯</div>
-            <h1>SCORM Score Injector</h1>
-            <p>Inject completion and score values into SCORM content</p>
-        </div>
-        
-        <div class="content">
-            <div class="score-info">
-                <div class="info-item">
-                    <span class="label">Score:</span>
-                    <span class="value">100 (100%)</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Status:</span>
-                    <span class="value">Completed & Passed</span>
-                </div>
-            </div>
-            
-            <button id="injectButton" class="inject-button">
-                <span class="button-icon">💉</span>
-                <span class="button-text">Inject SCORM Values</span>
-            </button>
-            
-            <div id="status" class="status-message"></div>
-        </div>
-        
-        <div class="footer">
-            <p>Click the button to set SCORM completion status</p>
-        </div>
+  <div class="container">
+    <div class="header">
+      <div class="icon">🎓</div>
+      <h1>SCORM Helper</h1>
     </div>
     
-    <script src="popup.js"></script>
+    <div class="status-card">
+      <div class="status-indicator" id="statusIndicator">
+        <div class="spinner"></div>
+      </div>
+      <div class="status-text">
+        <span id="statusText">Checking SCORM API...</span>
+      </div>
+    </div>
+
+    <div class="action-section">
+      <button id="completeButton" class="complete-button" disabled>
+        <span class="button-icon">✓</span>
+        <span class="button-text">Mark as Completed</span>
+      </button>
+      
+      <div class="info-text">
+        This will set your course progress to 100% completed with a passing score.
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="version">v1.0.0</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
 </body>
 </html>
