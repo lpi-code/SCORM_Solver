@@ -1,0 +1,114 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build extensions
+      run: npm run build
+      
+    - name: Create release packages
+      run: npm run zip
+      
+    - name: Verify build outputs
+      run: |
+        ls -la dist/
+        ls -la dist/chrome/
+        ls -la dist/firefox/
+        
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          ## SCORM Score Injector Release
+          
+          ### Features
+          - Inject SCORM API completion and score values
+          - Beautiful modern UI with gradient design
+          - Support for both Chrome and Firefox
+          - Error handling and visual feedback
+          
+          ### Installation
+          - **Chrome**: Download `scorm-score-injector-chrome.zip` and load as unpacked extension
+          - **Firefox**: Download `scorm-score-injector-firefox.zip` and install as temporary add-on
+          
+          ### Usage
+          1. Navigate to a page with SCORM content
+          2. Click the extension icon
+          3. Click "Inject SCORM Values" button
+          4. The extension will set completion status to "completed" and score to 100%
+        draft: false
+        prerelease: false
+        
+    - name: Upload Chrome Extension
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/scorm-score-injector-chrome.zip
+        asset_name: scorm-score-injector-chrome.zip
+        asset_content_type: application/zip
+        
+    - name: Upload Firefox Extension
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/scorm-score-injector-firefox.zip
+        asset_name: scorm-score-injector-firefox.zip
+        asset_content_type: application/zip
+        
+    - name: Publish to Chrome Web Store
+      if: success()
+      uses: mobilefirstllc/cws-publish@latest
+      with:
+        action: 'publish'
+        client_id: ${{ secrets.CHROME_CLIENT_ID }}
+        client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+        refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
+        zip_file: './dist/scorm-score-injector-chrome.zip'
+        
+    - name: Publish to Firefox Add-ons Store
+      if: success()
+      uses: mozilla/addons-linter@latest
+      with:
+        src: './dist/scorm-score-injector-firefox.zip'
+        
+    - name: Submit to Firefox Add-ons (AMO)
+      if: success()
+      run: |
+        echo "Firefox Add-ons submission requires manual process"
+        echo "Please upload dist/scorm-score-injector-firefox.zip to https://addons.mozilla.org/developers/"
+        echo "API Key: ${{ secrets.AMO_API_KEY }}"
+        echo "API Secret: ${{ secrets.AMO_API_SECRET }}"
