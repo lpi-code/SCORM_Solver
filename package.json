@@ -7,6 +7,9 @@
     "build": "./build.sh",
     "build:chrome": "mkdir -p dist/chrome && cp manifest.json dist/chrome/ && cp -r popup.* content.js icons dist/chrome/",
     "build:firefox": "mkdir -p dist/firefox && cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.* content.js icons dist/firefox/",
+    "zip:chrome": "npm run build:chrome && cd dist/chrome && zip -r ../scorm-completion-helper-chrome.zip . && cd ../..",
+    "zip:firefox": "npm run build:firefox && cd dist/firefox && zip -r ../scorm-completion-helper-firefox.zip . && cd ../..",
+    "zip": "npm run zip:chrome && npm run zip:firefox",
     "clean": "rm -rf dist/",
     "test": "echo \"No tests specified\" && exit 0"
   },
