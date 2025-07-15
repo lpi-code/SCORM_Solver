@@ -1,0 +1,37 @@
+{
+  "name": "scorm-solver",
+  "version": "1.0.0",
+  "description": "A web extension that helps complete SCORM courses by injecting completion status",
+  "main": "popup.js",
+  "scripts": {
+    "build": "./build.sh",
+    "build:chrome": "cp manifest.json dist/chrome/ && cp -r popup.* content.js icons dist/chrome/",
+    "build:firefox": "cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.* content.js icons dist/firefox/",
+    "clean": "rm -rf dist/",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "scorm",
+    "extension",
+    "chrome",
+    "firefox",
+    "web-extension",
+    "education",
+    "e-learning"
+  ],
+  "author": "SCORM Solver Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/scorm-solver.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/scorm-solver/issues"
+  },
+  "homepage": "https://github.com/your-username/scorm-solver#readme",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 
