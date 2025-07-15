@@ -24,7 +24,7 @@
       "run_at": "document_end"
     }
   ],
-  "web_accessible_resources": ["injected.js"],
+  "web_accessible_resources": ["content.js"],
   "applications": {
     "gecko": {
       "id": "scorm-completion-helper@example.com",

@@ -5,8 +5,8 @@
   "main": "popup.js",
   "scripts": {
     "build": "./build.sh",
-    "build:chrome": "cp manifest.json dist/chrome/ && cp -r popup.* content.js icons dist/chrome/",
-    "build:firefox": "cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.* content.js icons dist/firefox/",
+    "build:chrome": "mkdir -p dist/chrome && cp manifest.json dist/chrome/ && cp -r popup.* content.js icons dist/chrome/",
+    "build:firefox": "mkdir -p dist/firefox && cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.* content.js icons dist/firefox/",
     "clean": "rm -rf dist/",
     "test": "echo \"No tests specified\" && exit 0"
   },
