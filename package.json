@@ -1,0 +1,24 @@
+{
+  "name": "scorm-score-injector",
+  "version": "1.0.0",
+  "description": "Web extension to inject SCORM API completion and score values",
+  "scripts": {
+    "build": "npm run build:chrome && npm run build:firefox",
+    "build:chrome": "npm run clean:chrome && npm run copy:chrome",
+    "build:firefox": "npm run clean:firefox && npm run copy:firefox",
+    "copy:chrome": "mkdir -p dist/chrome && cp manifest.json dist/chrome/ && cp -r popup.html popup.js styles.css content.js icons dist/chrome/",
+    "copy:firefox": "mkdir -p dist/firefox && cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.html popup.js styles.css content.js icons dist/firefox/",
+    "clean": "rm -rf dist",
+    "clean:chrome": "rm -rf dist/chrome",
+    "clean:firefox": "rm -rf dist/firefox",
+    "zip": "npm run zip:chrome && npm run zip:firefox",
+    "zip:chrome": "cd dist/chrome && zip -r ../scorm-score-injector-chrome.zip .",
+    "zip:firefox": "cd dist/firefox && zip -r ../scorm-score-injector-firefox.zip .",
+    "package": "npm run build && npm run zip",
+    "dev": "npm run build && echo 'Extension built successfully! Load from dist/chrome (Chrome) or dist/firefox (Firefox)'"
+  },
+  "keywords": ["extension", "scorm", "e-learning", "education"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {}
+}

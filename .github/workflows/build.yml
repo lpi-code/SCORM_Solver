@@ -1,0 +1,92 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Build Chrome extension
+      run: npm run build:chrome
+      
+    - name: Build Firefox extension
+      run: npm run build:firefox
+      
+    - name: Verify Chrome build
+      run: |
+        echo "Verifying Chrome extension build..."
+        ls -la dist/chrome/
+        test -f dist/chrome/manifest.json
+        test -f dist/chrome/popup.html
+        test -f dist/chrome/popup.js
+        test -f dist/chrome/styles.css
+        test -f dist/chrome/content.js
+        test -d dist/chrome/icons
+        
+    - name: Verify Firefox build
+      run: |
+        echo "Verifying Firefox extension build..."
+        ls -la dist/firefox/
+        test -f dist/firefox/manifest.json
+        test -f dist/firefox/popup.html
+        test -f dist/firefox/popup.js
+        test -f dist/firefox/styles.css
+        test -f dist/firefox/content.js
+        test -d dist/firefox/icons
+        
+    - name: Validate Chrome manifest
+      run: |
+        echo "Validating Chrome manifest..."
+        cat dist/chrome/manifest.json | jq empty
+        
+    - name: Validate Firefox manifest
+      run: |
+        echo "Validating Firefox manifest..."
+        cat dist/firefox/manifest.json | jq empty
+        
+    - name: Create artifacts
+      run: npm run zip
+      
+    - name: Upload Chrome build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: chrome-extension
+        path: dist/scorm-score-injector-chrome.zip
+        
+    - name: Upload Firefox build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: firefox-extension
+        path: dist/scorm-score-injector-firefox.zip
+        
+    - name: Verify Firefox package structure
+      run: |
+        echo "Verifying Firefox package structure..."
+        unzip -l dist/scorm-score-injector-firefox.zip
+        
+    - name: Display build summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Chrome extension built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Firefox extension built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Both extensions packaged as ZIP files" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### File Sizes" >> $GITHUB_STEP_SUMMARY
+        echo "- Chrome: $(du -h dist/scorm-score-injector-chrome.zip | cut -f1)" >> $GITHUB_STEP_SUMMARY
+        echo "- Firefox: $(du -h dist/scorm-score-injector-firefox.zip | cut -f1)" >> $GITHUB_STEP_SUMMARY

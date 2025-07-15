@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCORM Score Injector</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🎯</div>
+            <h1>SCORM Score Injector</h1>
+            <p>Inject completion and score values into SCORM content</p>
+        </div>
+        
+        <div class="content">
+            <div class="score-info">
+                <div class="info-item">
+                    <span class="label">Score:</span>
+                    <span class="value">100 (100%)</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Status:</span>
+                    <span class="value">Completed & Passed</span>
+                </div>
+            </div>
+            
+            <button id="injectButton" class="inject-button">
+                <span class="button-icon">💉</span>
+                <span class="button-text">Inject SCORM Values</span>
+            </button>
+            
+            <div id="status" class="status-message"></div>
+        </div>
+        
+        <div class="footer">
+            <p>Click the button to set SCORM completion status</p>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
