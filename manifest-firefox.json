@@ -1,21 +1,15 @@
 {
   "manifest_version": 2,
-  "name": "SCORM Score Injector",
+  "name": "SCORM Completion Helper",
   "version": "1.0.0",
-  "description": "Inject SCORM API completion and score values into web pages",
+  "description": "Inject SCORM API calls to mark courses as completed",
   "permissions": [
     "activeTab",
     "<all_urls>"
   ],
   "browser_action": {
     "default_popup": "popup.html",
-    "default_title": "SCORM Score Injector",
-    "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
-    }
+    "default_title": "SCORM Completion Helper"
   },
   "icons": {
     "16": "icons/icon-16.png",
@@ -29,5 +23,12 @@
       "js": ["content.js"],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "web_accessible_resources": ["content.js", "popup.js"],
+  "applications": {
+    "gecko": {
+      "id": "scorm-completion-helper@example.com",
+      "strict_min_version": "48.0"
+    }
+  }
 }

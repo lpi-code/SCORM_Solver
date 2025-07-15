@@ -1,114 +1,214 @@
-name: Release Extension
+name: Build and Release Extension
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release'
-        required: true
-        default: '1.0.0'
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        
+    
     - name: Install dependencies
-      run: npm install
-      
-    - name: Build extensions
-      run: npm run build
-      
-    - name: Create release packages
-      run: npm run zip
-      
-    - name: Verify build outputs
       run: |
-        ls -la dist/
-        ls -la dist/chrome/
-        ls -la dist/firefox/
+        npm install -g web-ext
+        sudo apt-get update
+        sudo apt-get install -y zip
+    
+    - name: Generate icons
+      run: |
+        python3 create_icons.py
+        sudo apt-get install -y imagemagick
+        cd icons
+        for size in 16 32 48 128; do
+          convert icon-${size}.svg icon-${size}.png
+        done
+        cd ..
+    
+    - name: Build Chrome extension
+      run: |
+        mkdir -p dist/chrome
+        cp manifest.json dist/chrome/
+        cp popup.html dist/chrome/
+        cp popup.css dist/chrome/
+        cp popup.js dist/chrome/
+        cp content.js dist/chrome/
+        cp -r icons dist/chrome/
+        cd dist/chrome
+        zip -r ../scorm-completion-helper-chrome.zip .
+        cd ../..
+    
+    - name: Build Firefox extension (Manifest V2)
+      run: |
+        mkdir -p dist/firefox
+        # Create Firefox-specific manifest
+        cat > dist/firefox/manifest.json << 'EOF'
+        {
+          "manifest_version": 2,
+          "name": "SCORM Completion Helper",
+          "version": "1.0.0",
+          "description": "Inject SCORM API calls to mark courses as completed",
+          "permissions": [
+            "activeTab",
+            "<all_urls>"
+          ],
+          "browser_action": {
+            "default_popup": "popup.html",
+            "default_title": "SCORM Completion Helper"
+          },
+          "icons": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png",
+            "48": "icons/icon-48.png",
+            "128": "icons/icon-128.png"
+          },
+          "content_scripts": [
+            {
+              "matches": ["<all_urls>"],
+              "js": ["content.js"],
+              "run_at": "document_end"
+            }
+          ],
+          "web_accessible_resources": ["injected.js"]
+        }
+        EOF
         
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        cp popup.html dist/firefox/
+        cp popup.css dist/firefox/
+        cp popup.js dist/firefox/
+        cp content.js dist/firefox/
+        cp -r icons dist/firefox/
+        
+        # Create Firefox-specific popup.js (replace chrome.scripting with chrome.tabs)
+        sed 's/chrome\.scripting\.executeScript/chrome.tabs.executeScript/g' popup.js > dist/firefox/popup.js
+        
+        cd dist/firefox
+        zip -r ../scorm-completion-helper-firefox.zip .
+        cd ../..
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          ## SCORM Score Injector Release
-          
-          ### Features
-          - Inject SCORM API completion and score values
-          - Beautiful modern UI with gradient design
-          - Support for both Chrome and Firefox
-          - Error handling and visual feedback
-          
-          ### Installation
-          - **Chrome**: Download `scorm-score-injector-chrome.zip` and load as unpacked extension
-          - **Firefox**: Download `scorm-score-injector-firefox.zip` and install as temporary add-on
-          
-          ### Usage
-          1. Navigate to a page with SCORM content
-          2. Click the extension icon
-          3. Click "Inject SCORM Values" button
-          4. The extension will set completion status to "completed" and score to 100%
+        files: |
+          dist/scorm-completion-helper-chrome.zip
+          dist/scorm-completion-helper-firefox.zip
         draft: false
         prerelease: false
-        
-    - name: Upload Chrome Extension
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload Chrome Extension to Web Store
+      if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'push'
+      uses: mnao305/chrome-extension-upload@v4.0.1
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/scorm-score-injector-chrome.zip
-        asset_name: scorm-score-injector-chrome.zip
-        asset_content_type: application/zip
-        
-    - name: Upload Firefox Extension
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        file-path: dist/scorm-completion-helper-chrome.zip
+        extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+        client-id: ${{ secrets.CHROME_CLIENT_ID }}
+        client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+        refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        publish: true
+    
+    - name: Upload Firefox Add-on
+      if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'push'
+      uses: trmcnvn/firefox-addon@v1
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/scorm-score-injector-firefox.zip
-        asset_name: scorm-score-injector-firefox.zip
-        asset_content_type: application/zip
-        
-    - name: Publish to Chrome Web Store
-      if: success()
-      uses: mobilefirstllc/cws-publish@latest
+        uuid: ${{ secrets.FIREFOX_ADDON_UUID }}
+        xpi: dist/scorm-completion-helper-firefox.zip
+        manifest: dist/firefox/manifest.json
+        api-key: ${{ secrets.FIREFOX_API_KEY }}
+        api-secret: ${{ secrets.FIREFOX_API_SECRET }}
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        action: 'publish'
-        client_id: ${{ secrets.CHROME_CLIENT_ID }}
-        client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-        refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
-        extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
-        zip_file: './dist/scorm-score-injector-chrome.zip'
-        
-    - name: Verify Firefox package
-      if: success()
+        node-version: '18'
+    
+    - name: Install web-ext
+      run: npm install -g web-ext
+    
+    - name: Generate icons
       run: |
-        echo "Verifying Firefox package..."
-        unzip -l dist/scorm-score-injector-firefox.zip
-        
-    - name: Submit to Firefox Add-ons (AMO)
-      if: success()
+        python3 create_icons.py
+        sudo apt-get update
+        sudo apt-get install -y imagemagick
+        cd icons
+        for size in 16 32 48 128; do
+          convert icon-${size}.svg icon-${size}.png
+        done
+        cd ..
+    
+    - name: Lint Chrome extension
       run: |
-        echo "Firefox Add-ons submission requires manual process"
-        echo "Please upload dist/scorm-score-injector-firefox.zip to https://addons.mozilla.org/developers/"
-        echo "API Key: ${{ secrets.AMO_API_KEY }}"
-        echo "API Secret: ${{ secrets.AMO_API_SECRET }}"
+        mkdir -p dist/chrome
+        cp manifest.json dist/chrome/
+        cp popup.html dist/chrome/
+        cp popup.css dist/chrome/
+        cp popup.js dist/chrome/
+        cp content.js dist/chrome/
+        cp -r icons dist/chrome/
+        cd dist/chrome
+        web-ext lint --source-dir . --warnings-as-errors
+        cd ../..
+    
+    - name: Lint Firefox extension
+      run: |
+        mkdir -p dist/firefox
+        # Create Firefox-specific manifest
+        cat > dist/firefox/manifest.json << 'EOF'
+        {
+          "manifest_version": 2,
+          "name": "SCORM Completion Helper",
+          "version": "1.0.0",
+          "description": "Inject SCORM API calls to mark courses as completed",
+          "permissions": [
+            "activeTab",
+            "<all_urls>"
+          ],
+          "browser_action": {
+            "default_popup": "popup.html",
+            "default_title": "SCORM Completion Helper"
+          },
+          "icons": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png",
+            "48": "icons/icon-48.png",
+            "128": "icons/icon-128.png"
+          },
+          "content_scripts": [
+            {
+              "matches": ["<all_urls>"],
+              "js": ["content.js"],
+              "run_at": "document_end"
+            }
+          ],
+          "web_accessible_resources": ["injected.js"]
+        }
+        EOF
+        
+        cp popup.html dist/firefox/
+        cp popup.css dist/firefox/
+        cp popup.js dist/firefox/
+        cp content.js dist/firefox/
+        cp -r icons dist/firefox/
+        
+        cd dist/firefox
+        web-ext lint --source-dir . --warnings-as-errors
+        cd ../..

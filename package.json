@@ -1,24 +1,40 @@
 {
-  "name": "scorm-score-injector",
+  "name": "scorm-solver",
   "version": "1.0.0",
-  "description": "Web extension to inject SCORM API completion and score values",
+  "description": "A web extension that helps complete SCORM courses by injecting completion status",
+  "main": "popup.js",
   "scripts": {
-    "build": "npm run build:chrome && npm run build:firefox",
-    "build:chrome": "npm run clean:chrome && npm run copy:chrome",
-    "build:firefox": "npm run clean:firefox && npm run copy:firefox",
-    "copy:chrome": "mkdir -p dist/chrome && cp manifest.json dist/chrome/ && cp -r popup.html popup.js styles.css content.js icons dist/chrome/",
-    "copy:firefox": "mkdir -p dist/firefox && cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.html popup.js styles.css content.js icons dist/firefox/",
-    "clean": "rm -rf dist",
-    "clean:chrome": "rm -rf dist/chrome",
-    "clean:firefox": "rm -rf dist/firefox",
+    "build": "./build.sh",
+    "build:chrome": "mkdir -p dist/chrome && cp manifest.json dist/chrome/ && cp -r popup.* content.js icons dist/chrome/",
+    "build:firefox": "mkdir -p dist/firefox && cp manifest-firefox.json dist/firefox/manifest.json && cp -r popup.* content.js icons dist/firefox/",
+    "zip:chrome": "npm run build:chrome && cd dist/chrome && zip -r ../scorm-score-injector-chrome.zip . && cd ../..",
+    "zip:firefox": "npm run build:firefox && cd dist/firefox && zip -r ../scorm-score-injector-firefox.zip . && cd ../..",
     "zip": "npm run zip:chrome && npm run zip:firefox",
-    "zip:chrome": "cd dist/chrome && zip -r ../scorm-score-injector-chrome.zip .",
-    "zip:firefox": "cd dist/firefox && zip -r ../scorm-score-injector-firefox.zip .",
-    "package": "npm run build && npm run zip",
-    "dev": "npm run build && echo 'Extension built successfully! Load from dist/chrome (Chrome) or dist/firefox (Firefox)'"
+    "clean": "rm -rf dist/",
+    "test": "echo \"No tests specified\" && exit 0"
   },
-  "keywords": ["extension", "scorm", "e-learning", "education"],
-  "author": "Your Name",
+  "keywords": [
+    "scorm",
+    "extension",
+    "chrome",
+    "firefox",
+    "web-extension",
+    "education",
+    "e-learning"
+  ],
+  "author": "SCORM Solver Team",
   "license": "MIT",
-  "devDependencies": {}
-}
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/scorm-solver.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/scorm-solver/issues"
+  },
+  "homepage": "https://github.com/your-username/scorm-solver#readme",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 

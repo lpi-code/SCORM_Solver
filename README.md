@@ -1,62 +1,64 @@
-# SCORM Score Injector
+# SCORM Completion Helper
 
-A beautiful web extension that injects SCORM API completion and score values into e-learning content with a single click.
-
-![Extension Preview](https://via.placeholder.com/800x400/4facfe/ffffff?text=SCORM+Score+Injector+Extension)
+A browser extension that automatically injects SCORM API calls to mark courses as completed with a 100% score. Features a beautiful, modern UI with real-time SCORM API detection.
 
 ## Features
 
-- 🎯 **One-Click Injection**: Instantly set SCORM completion and score values
+- ✅ **SCORM API Detection**: Automatically detects SCORM 1.2 and SCORM 2004 APIs
+- 🎯 **One-Click Completion**: Mark courses as completed with a single button click
 - 🎨 **Beautiful UI**: Modern gradient design with smooth animations
-- 🔧 **Cross-Browser**: Works on both Chrome and Firefox
-- 📊 **Perfect Scores**: Sets score to 100% and completion status to "completed"
-- 🛡️ **Error Handling**: Robust error checking and user feedback
-- 📱 **Responsive**: Clean, mobile-friendly popup interface
+- 🔍 **Real-time Status**: Shows whether SCORM API is available on the current page
+- 🌐 **Cross-browser**: Works on both Chrome and Firefox
+- 📱 **Responsive**: Optimized for different screen sizes
+- 🚀 **Fast**: Lightweight and efficient
 
 ## Installation
 
 ### Chrome Web Store
 1. Visit the [Chrome Web Store](https://chrome.google.com/webstore) (link coming soon)
 2. Click "Add to Chrome"
-3. Click "Add extension" to confirm
+3. Confirm the installation
 
 ### Firefox Add-ons
 1. Visit [Firefox Add-ons](https://addons.mozilla.org) (link coming soon)
 2. Click "Add to Firefox"
-3. Click "Add" to confirm
+3. Confirm the installation
 
 ### Manual Installation (Development)
 
 #### Chrome
-1. Download the latest `scorm-score-injector-chrome.zip` from [Releases](../../releases)
-2. Extract the ZIP file
-3. Open Chrome and navigate to `chrome://extensions/`
-4. Enable "Developer mode"
-5. Click "Load unpacked" and select the extracted folder
+1. Download or clone this repository
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right
+4. Click "Load unpacked" and select the extension folder
+5. The extension should now appear in your extensions list
 
 #### Firefox
-1. Download the latest `scorm-score-injector-firefox.zip` from [Releases](../../releases)
-2. Open Firefox and navigate to `about:debugging`
-3. Click "This Firefox"
-4. Click "Load Temporary Add-on"
-5. Select the ZIP file
+1. Download or clone this repository
+2. Copy `manifest-firefox.json` to `manifest.json` (overwriting the existing file)
+3. Open Firefox and navigate to `about:debugging`
+4. Click "This Firefox" in the sidebar
+5. Click "Load Temporary Add-on"
+6. Select the `manifest.json` file from the extension folder
 
 ## Usage
 
-1. **Navigate** to a page with SCORM content
-2. **Click** the extension icon in your browser toolbar
-3. **Click** the "Inject SCORM Values" button
-4. **Success!** The extension will:
-   - Set `cmi.score.raw` to "100"
-   - Set `cmi.score.scaled` to "1.0"
-   - Set `cmi.success_status` to "passed"
-   - Set `cmi.completion_status` to "completed"
-   - Commit the changes
+1. **Navigate to a SCORM course**: Open any webpage containing SCORM content
+2. **Check API status**: Click the extension icon to see if SCORM API is detected
+3. **Mark as completed**: If SCORM API is available, click "Mark as Completed"
+4. **Success confirmation**: The extension will show a success message and update the button
 
-## SCORM Values Injected
+### SCORM API Support
 
-The extension injects the following SCORM 2004 API values:
+The extension supports both major SCORM versions:
+- **SCORM 1.2**: Uses `API` object with `LMSSetValue` and `LMSCommit`
+- **SCORM 2004**: Uses `API_1484_11` object with `SetValue` and `Commit`
 
+### Injected Values
+
+When you click "Mark as Completed", the extension injects these values:
+
+**SCORM 2004:**
 ```javascript
 API_1484_11.SetValue("cmi.score.raw", "100");
 API_1484_11.SetValue("cmi.score.scaled", "1.0");
@@ -65,80 +67,119 @@ API_1484_11.SetValue("cmi.completion_status", "completed");
 API_1484_11.Commit("");
 ```
 
-## Screenshots
+**SCORM 1.2:**
+```javascript
+API.LMSSetValue("cmi.core.score.raw", "100");
+API.LMSSetValue("cmi.core.lesson_status", "completed");
+API.LMSCommit("");
+```
 
-### Extension Popup
-![Popup Interface](https://via.placeholder.com/400x500/667eea/ffffff?text=Beautiful+Popup+Interface)
+## UI Features
 
-### Success Notification
-![Success Notification](https://via.placeholder.com/400x100/4facfe/ffffff?text=Success+Notification)
+- **Status Indicator**: 
+  - 🟢 Green checkmark = SCORM API detected
+  - 🔴 Red X = SCORM API not found
+  - ⏳ Spinner = Checking for API
+- **Beautiful Button**: Gradient design with hover effects and animations
+- **Real-time Feedback**: Visual confirmation when injection is successful
+- **Error Handling**: Clear error messages if something goes wrong
 
 ## Development
 
 ### Prerequisites
-- Node.js 18+
-- npm
+- Python 3.x (for icon generation)
+- ImageMagick (for SVG to PNG conversion)
+- Node.js (for web-ext linting)
 
 ### Setup
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/scorm-score-injector.git
-cd scorm-score-injector
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/scorm-completion-helper.git
+   cd scorm-completion-helper
+   ```
 
-# Install dependencies
-npm install
+2. Generate icons:
+   ```bash
+   python3 create_icons.py
+   cd icons
+   for size in 16 32 48 128; do
+     convert icon-${size}.svg icon-${size}.png
+   done
+   cd ..
+   ```
 
-# Build extensions
-npm run build
-
-# Package for distribution
-npm run package
-```
-
-### Scripts
-- `npm run build` - Build both Chrome and Firefox extensions
-- `npm run build:chrome` - Build Chrome extension only
-- `npm run build:firefox` - Build Firefox extension only
-- `npm run zip` - Create ZIP packages for both browsers
-- `npm run dev` - Build and display success message
+3. Install development tools:
+   ```bash
+   npm install -g web-ext
+   ```
 
 ### File Structure
 ```
-scorm-score-injector/
+scorm-completion-helper/
+├── manifest.json          # Chrome manifest (Manifest V3)
+├── manifest-firefox.json  # Firefox manifest (Manifest V2)
+├── popup.html             # Extension popup UI
+├── popup.css              # Popup styles
+├── popup.js               # Popup logic (cross-browser compatible)
+├── content.js             # Content script for page interaction
+├── icons/                 # Extension icons (SVG and PNG)
+├── create_icons.py        # Icon generation script
 ├── .github/workflows/     # CI/CD pipelines
-├── icons/                 # Extension icons
-├── dist/                  # Build outputs
-│   ├── chrome/           # Chrome extension
-│   └── firefox/          # Firefox extension
-├── manifest.json          # Chrome manifest (v3)
-├── manifest-firefox.json  # Firefox manifest (v2)
-├── popup.html            # Extension popup
-├── popup.js              # Popup logic
-├── styles.css            # Beautiful styling
-├── content.js            # Content script
-└── package.json          # Build configuration
+└── README.md             # This file
 ```
 
-## Browser Compatibility
+### Building for Release
 
-### Chrome
-- Manifest V3
-- Chrome 88+
-- Uses `chrome.scripting` API
+#### Chrome
+```bash
+mkdir -p dist/chrome
+cp manifest.json dist/chrome/
+cp popup.html popup.css popup.js content.js dist/chrome/
+cp -r icons dist/chrome/
+cd dist/chrome
+zip -r ../scorm-completion-helper-chrome.zip .
+```
 
-### Firefox
-- Manifest V2
-- Firefox 78+
-- Uses `browser.tabs.executeScript`
+#### Firefox
+```bash
+mkdir -p dist/firefox
+cp manifest-firefox.json dist/firefox/manifest.json
+cp popup.html popup.css popup.js content.js dist/firefox/
+cp -r icons dist/firefox/
+cd dist/firefox
+zip -r ../scorm-completion-helper-firefox.zip .
+```
 
-## Error Handling
+### Testing
+```bash
+# Lint Chrome extension
+web-ext lint --source-dir dist/chrome
 
-The extension includes comprehensive error handling:
+# Lint Firefox extension
+web-ext lint --source-dir dist/firefox
+```
 
-- **No SCORM API**: Searches common locations for the API
-- **Invalid Pages**: Only works on HTTP/HTTPS pages
-- **API Errors**: Displays specific SCORM error messages
-- **Network Issues**: Handles connection problems gracefully
+## CI/CD Pipeline
+
+The project includes GitHub Actions workflows for:
+- ✅ Automated testing and linting
+- 📦 Building release packages
+- 🚀 Publishing to Chrome Web Store
+- 🦊 Publishing to Firefox Add-ons
+
+### Required Secrets
+For automated publishing, add these secrets to your GitHub repository:
+
+**Chrome Web Store:**
+- `CHROME_EXTENSION_ID`
+- `CHROME_CLIENT_ID`
+- `CHROME_CLIENT_SECRET`
+- `CHROME_REFRESH_TOKEN`
+
+**Firefox Add-ons:**
+- `FIREFOX_ADDON_UUID`
+- `FIREFOX_API_KEY`
+- `FIREFOX_API_SECRET`
 
 ## Contributing
 
@@ -155,28 +196,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 If you encounter any issues or have questions:
-
-1. Check the [Issues](../../issues) page
-2. Create a new issue with detailed information
-3. Include browser version and error messages
-
-## Privacy
-
-This extension:
-- ✅ Only runs on pages you visit
-- ✅ Does not collect personal data
-- ✅ Does not send data to external servers
-- ✅ Only injects SCORM values when you click the button
+1. Check the [Issues](https://github.com/yourusername/scorm-completion-helper/issues) page
+2. Create a new issue if your problem isn't already reported
+3. Provide detailed information about your browser, SCORM version, and the issue
 
 ## Changelog
 
-### Version 1.0.0
+### v1.0.0
 - Initial release
-- Chrome and Firefox support
-- Beautiful gradient UI
-- One-click SCORM injection
-- Error handling and notifications
+- Support for SCORM 1.2 and SCORM 2004
+- Beautiful gradient UI design
+- Cross-browser compatibility (Chrome and Firefox)
+- Real-time SCORM API detection
+- One-click completion injection
+- Comprehensive error handling
 
 ---
 
-Made with ❤️ for e-learning professionals and students
+**⚠️ Disclaimer**: This extension is for educational and testing purposes. Use responsibly and in accordance with your organization's policies.

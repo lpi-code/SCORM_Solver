@@ -35,7 +35,7 @@ jobs:
         test -f dist/chrome/manifest.json
         test -f dist/chrome/popup.html
         test -f dist/chrome/popup.js
-        test -f dist/chrome/styles.css
+        test -f dist/chrome/popup.css
         test -f dist/chrome/content.js
         test -d dist/chrome/icons
         
@@ -46,7 +46,7 @@ jobs:
         test -f dist/firefox/manifest.json
         test -f dist/firefox/popup.html
         test -f dist/firefox/popup.js
-        test -f dist/firefox/styles.css
+        test -f dist/firefox/popup.css
         test -f dist/firefox/content.js
         test -d dist/firefox/icons
         

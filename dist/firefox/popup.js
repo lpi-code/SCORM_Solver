@@ -1,180 +1,254 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const injectButton = document.getElementById('injectButton');
-    const statusMessage = document.getElementById('status');
-    const buttonText = document.querySelector('.button-text');
-    const buttonIcon = document.querySelector('.button-icon');
+document.addEventListener('DOMContentLoaded', async () => {
+  const statusIndicator = document.getElementById('statusIndicator');
+  const statusText = document.getElementById('statusText');
+  const completeButton = document.getElementById('completeButton');
 
-    function showStatus(message, type = 'success') {
-        statusMessage.textContent = message;
-        statusMessage.className = `status-message show ${type}`;
-        
-        setTimeout(() => {
-            statusMessage.className = 'status-message';
-        }, 3000);
+  // Check if we have an active tab
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      updateStatus('unavailable', 'No active tab found');
+      return;
     }
 
-    function setButtonLoading(loading) {
-        if (loading) {
-            injectButton.classList.add('loading');
-            injectButton.disabled = true;
-            buttonIcon.textContent = '⏳';
-            buttonText.textContent = 'Injecting...';
-        } else {
-            injectButton.classList.remove('loading');
-            injectButton.disabled = false;
-            buttonIcon.textContent = '💉';
-            buttonText.textContent = 'Inject SCORM Values';
-        }
+    // Check SCORM API availability
+    await checkScormAvailability(tab.id);
+  } catch (error) {
+    console.error('Error checking SCORM availability:', error);
+    updateStatus('unavailable', 'Error checking SCORM API');
+  }
+
+  // Handle button click
+  completeButton.addEventListener('click', async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await injectScormCompletion(tab.id);
+    } catch (error) {
+      console.error('Error injecting SCORM completion:', error);
+      showError('Failed to inject SCORM completion');
     }
-
-    injectButton.addEventListener('click', async function() {
-        try {
-            setButtonLoading(true);
-            
-            // Get the active tab
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            
-            if (!tab) {
-                throw new Error('No active tab found');
-            }
-
-            // Check if we're on a supported protocol
-            if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) {
-                throw new Error('Extension only works on web pages (http/https)');
-            }
-
-            // For Manifest V3 (Chrome)
-            if (chrome.scripting) {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    function: injectScormCode
-                });
-            } else {
-                // For Manifest V2 (Firefox)
-                await chrome.tabs.executeScript(tab.id, {
-                    code: `(${injectScormCode})()`
-                });
-            }
-
-            showStatus('SCORM values injected successfully!', 'success');
-            
-        } catch (error) {
-            console.error('Error injecting SCORM code:', error);
-            showStatus(`Error: ${error.message}`, 'error');
-        } finally {
-            setButtonLoading(false);
-        }
-    });
-
-    // The function that will be injected into the page
-    function injectScormCode() {
-        try {
-            // Check if API_1484_11 exists
-            if (typeof API_1484_11 === 'undefined') {
-                // Try to find it in common locations
-                const api = window.API_1484_11 || 
-                           window.parent.API_1484_11 || 
-                           window.top.API_1484_11 ||
-                           (window.parent && window.parent.parent && window.parent.parent.API_1484_11);
-                
-                if (!api) {
-                    throw new Error('SCORM API (API_1484_11) not found on this page');
-                }
-                
-                window.API_1484_11 = api;
-            }
-
-            // Inject the SCORM values
-            const results = [];
-            
-            results.push(API_1484_11.SetValue("cmi.score.raw", "100"));
-            results.push(API_1484_11.SetValue("cmi.score.scaled", "1.0"));
-            results.push(API_1484_11.SetValue("cmi.success_status", "passed"));
-            results.push(API_1484_11.SetValue("cmi.completion_status", "completed"));
-            results.push(API_1484_11.Commit(""));
-
-            // Check if any calls failed
-            const failedCalls = results.filter(result => result !== "true");
-            if (failedCalls.length > 0) {
-                const errorCode = API_1484_11.GetLastError();
-                const errorString = API_1484_11.GetErrorString(errorCode);
-                throw new Error(`SCORM API calls failed. Error: ${errorCode} - ${errorString}`);
-            }
-
-            // Add visual feedback to the page
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                color: white;
-                padding: 16px 24px;
-                border-radius: 12px;
-                font-family: 'Segoe UI', sans-serif;
-                font-weight: 600;
-                box-shadow: 0 4px 20px rgba(79, 172, 254, 0.4);
-                z-index: 10000;
-                animation: slideIn 0.3s ease-out;
-            `;
-            
-            notification.innerHTML = '✅ SCORM values injected successfully!';
-            document.body.appendChild(notification);
-
-            // Add animation styles
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
-
-            // Remove notification after 3 seconds
-            setTimeout(() => {
-                notification.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 3000);
-
-            return true;
-        } catch (error) {
-            console.error('SCORM injection error:', error);
-            
-            // Show error notification
-            const errorNotification = document.createElement('div');
-            errorNotification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-                color: #d63384;
-                padding: 16px 24px;
-                border-radius: 12px;
-                font-family: 'Segoe UI', sans-serif;
-                font-weight: 600;
-                box-shadow: 0 4px 20px rgba(255, 154, 158, 0.4);
-                z-index: 10000;
-                animation: slideIn 0.3s ease-out;
-            `;
-            
-            errorNotification.innerHTML = `❌ Error: ${error.message}`;
-            document.body.appendChild(errorNotification);
-
-            setTimeout(() => {
-                errorNotification.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    if (errorNotification.parentNode) {
-                        errorNotification.parentNode.removeChild(errorNotification);
-                    }
-                }, 300);
-            }, 5000);
-
-            throw error;
-        }
-    }
+  });
 });
+
+// Detect if we're in Firefox or Chrome
+function isFirefox() {
+  return typeof browser !== 'undefined' || navigator.userAgent.includes('Firefox');
+}
+
+// Execute script with browser compatibility
+async function executeScript(tabId, func) {
+  // Check if we're in Firefox (Manifest V2) or Chrome (Manifest V3)
+  if (typeof browser !== 'undefined' || !chrome.scripting) {
+    // Firefox or Chrome Manifest V2
+    return new Promise((resolve, reject) => {
+      chrome.tabs.executeScript(tabId, {
+        code: `(${func.toString()})()`
+      }, (results) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(results[0]);
+        }
+      });
+    });
+  } else if (chrome.scripting && chrome.scripting.executeScript) {
+    // Chrome Manifest V3
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: func
+    });
+    return results[0].result;
+  } else {
+    throw new Error('No compatible script execution API found');
+  }
+}
+
+async function checkScormAvailability(tabId) {
+  try {
+    const result = await executeScript(tabId, () => {
+      // Check for SCORM API availability
+      const checkAPI = () => {
+        // Check for SCORM 2004 API
+        if (typeof API_1484_11 !== 'undefined') {
+          return { version: '2004', available: true };
+        }
+        
+        // Check for SCORM 1.2 API
+        if (typeof API !== 'undefined') {
+          return { version: '1.2', available: true };
+        }
+        
+        // Check in parent frames
+        let currentWindow = window;
+        for (let i = 0; i < 10; i++) {
+          try {
+            if (currentWindow.parent && currentWindow.parent !== currentWindow) {
+              currentWindow = currentWindow.parent;
+              if (typeof currentWindow.API_1484_11 !== 'undefined') {
+                return { version: '2004', available: true };
+              }
+              if (typeof currentWindow.API !== 'undefined') {
+                return { version: '1.2', available: true };
+              }
+            } else {
+              break;
+            }
+          } catch (e) {
+            break;
+          }
+        }
+        
+        return { version: null, available: false };
+      };
+
+      return checkAPI();
+    });
+    
+    if (result && result.available) {
+      updateStatus('available', `SCORM ${result.version} API detected`);
+      document.getElementById('completeButton').disabled = false;
+    } else {
+      updateStatus('unavailable', 'SCORM API not found');
+    }
+  } catch (error) {
+    console.error('Error checking SCORM API:', error);
+    updateStatus('unavailable', 'Error checking SCORM API');
+  }
+}
+
+async function injectScormCompletion(tabId) {
+  const button = document.getElementById('completeButton');
+  const originalText = button.querySelector('.button-text').textContent;
+  
+  // Update button state
+  button.disabled = true;
+  button.querySelector('.button-text').textContent = 'Injecting...';
+  button.querySelector('.button-icon').textContent = '⏳';
+
+  try {
+    const result = await executeScript(tabId, () => {
+      const injectScorm = () => {
+        let api = null;
+        
+        // Find SCORM API
+        if (typeof API_1484_11 !== 'undefined') {
+          api = API_1484_11;
+        } else if (typeof API !== 'undefined') {
+          api = API;
+        } else {
+          // Check parent frames
+          let currentWindow = window;
+          for (let i = 0; i < 10; i++) {
+            try {
+              if (currentWindow.parent && currentWindow.parent !== currentWindow) {
+                currentWindow = currentWindow.parent;
+                if (typeof currentWindow.API_1484_11 !== 'undefined') {
+                  api = currentWindow.API_1484_11;
+                  break;
+                }
+                if (typeof currentWindow.API !== 'undefined') {
+                  api = currentWindow.API;
+                  break;
+                }
+              } else {
+                break;
+              }
+            } catch (e) {
+              break;
+            }
+          }
+        }
+
+        if (!api) {
+          return { success: false, error: 'SCORM API not found' };
+        }
+
+        try {
+          // For SCORM 2004 (API_1484_11)
+          if (typeof api.SetValue === 'function') {
+            api.SetValue("cmi.score.raw", "100");
+            api.SetValue("cmi.score.scaled", "1.0");
+            api.SetValue("cmi.success_status", "passed");
+            api.SetValue("cmi.completion_status", "completed");
+            api.Commit("");
+            
+            return { success: true, version: '2004' };
+          }
+          // For SCORM 1.2 (API)
+          else if (typeof api.LMSSetValue === 'function') {
+            api.LMSSetValue("cmi.core.score.raw", "100");
+            api.LMSSetValue("cmi.core.lesson_status", "completed");
+            api.LMSCommit("");
+            
+            return { success: true, version: '1.2' };
+          } else {
+            return { success: false, error: 'Invalid SCORM API' };
+          }
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
+      };
+
+      return injectScorm();
+    });
+    
+    if (result && result.success) {
+      // Success state
+      button.querySelector('.button-text').textContent = 'Completed!';
+      button.querySelector('.button-icon').textContent = '✅';
+      button.classList.add('success-animation');
+      
+      setTimeout(() => {
+        button.querySelector('.button-text').textContent = originalText;
+        button.querySelector('.button-icon').textContent = '✓';
+        button.disabled = false;
+        button.classList.remove('success-animation');
+      }, 2000);
+    } else {
+      throw new Error(result ? result.error : 'Unknown error');
+    }
+  } catch (error) {
+    console.error('Error injecting SCORM completion:', error);
+    showError('Failed to inject SCORM completion');
+    
+    // Reset button
+    button.querySelector('.button-text').textContent = originalText;
+    button.querySelector('.button-icon').textContent = '✓';
+    button.disabled = false;
+  }
+}
+
+function updateStatus(status, message) {
+  const statusIndicator = document.getElementById('statusIndicator');
+  const statusText = document.getElementById('statusText');
+  
+  // Remove all status classes
+  statusIndicator.classList.remove('checking', 'available', 'unavailable');
+  
+  // Add new status class
+  statusIndicator.classList.add(status);
+  
+  // Update content based on status
+  if (status === 'available') {
+    statusIndicator.innerHTML = '✓';
+  } else if (status === 'unavailable') {
+    statusIndicator.innerHTML = '✗';
+  } else {
+    statusIndicator.innerHTML = '<div class="spinner"></div>';
+  }
+  
+  statusText.textContent = message;
+}
+
+function showError(message) {
+  const button = document.getElementById('completeButton');
+  button.classList.add('error-state');
+  button.querySelector('.button-text').textContent = 'Error!';
+  button.querySelector('.button-icon').textContent = '⚠️';
+  
+  setTimeout(() => {
+    button.classList.remove('error-state');
+    button.querySelector('.button-text').textContent = 'Mark as Completed';
+    button.querySelector('.button-icon').textContent = '✓';
+  }, 2000);
+}
