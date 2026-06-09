@@ -1,20 +1,38 @@
-// Content script for SCORM Score Injector
-// This runs on all pages and can be used for additional functionality
+(function () {
+    const script = document.createElement('script');
+    script.textContent = `
+        (function () {
+            function tryInject() {
+                const api = window.API_1484_11 ||
+                    (window.parent !== window ? window.parent.API_1484_11 : null) ||
+                    (window.top !== window ? window.top.API_1484_11 : null);
 
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'checkScormApi') {
-        // Check if SCORM API is available
-        const apiAvailable = !!(
-            window.API_1484_11 || 
-            window.parent.API_1484_11 || 
-            window.top.API_1484_11 ||
-            (window.parent && window.parent.parent && window.parent.parent.API_1484_11)
-        );
-        
-        sendResponse({ available: apiAvailable });
-    }
-});
+                if (!api) return false;
 
-// Optional: Add a console log to indicate the extension is active
-console.log('SCORM Score Injector extension loaded');
+                api.SetValue("cmi.score.raw", "100");
+                api.SetValue("cmi.score.scaled", "1.0");
+                api.SetValue("cmi.success_status", "passed");
+                api.SetValue("cmi.completion_status", "completed");
+                api.Commit("");
+
+                console.log('[SCORM Solver] Injected successfully');
+                return true;
+            }
+
+            if (!tryInject()) {
+                let attempts = 0;
+                const poll = setInterval(function () {
+                    attempts++;
+                    if (tryInject() || attempts >= 120) {
+                        clearInterval(poll);
+                        if (attempts >= 120) {
+                            console.warn('[SCORM Solver] API_1484_11 not found after 60s');
+                        }
+                    }
+                }, 500);
+            }
+        })();
+    `;
+    document.documentElement.appendChild(script);
+    script.remove();
+})();

@@ -47,12 +47,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (chrome.scripting) {
                 await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
-                    function: injectScormCode
+                    func: injectScormCode,
+                    world: 'MAIN'
                 });
             } else {
-                // For Manifest V2 (Firefox)
+                // For Manifest V2 (Firefox) - inject via script tag to reach the page's main world
                 await chrome.tabs.executeScript(tab.id, {
-                    code: `(${injectScormCode})()`
+                    code: `(function() {
+                        const s = document.createElement('script');
+                        s.textContent = '(' + ${JSON.stringify(injectScormCode.toString())} + ')()';
+                        document.documentElement.appendChild(s);
+                        s.remove();
+                    })()`
                 });
             }
 
